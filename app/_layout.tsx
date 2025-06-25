@@ -8,6 +8,7 @@ export default function RootLayout() {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const router = useRouter();
   const segments = useSegments();
+
   // Get's triggered whenever the app starts
   const onAuthStateChanged = (user: FirebaseAuthTypes.User | null) => {
     console.log("onAuthStateChanged", user);
@@ -44,7 +45,7 @@ export default function RootLayout() {
 
   return (
     <Stack>
-      <Stack.Screen name="index" />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
     </Stack>
   );

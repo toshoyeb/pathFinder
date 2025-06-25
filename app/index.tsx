@@ -1,91 +1,144 @@
-import auth from "@react-native-firebase/auth";
-import { FirebaseError } from "firebase/app";
-import { useState } from "react";
+import { useRouter } from "expo-router";
+import React from "react";
 import {
-  ActivityIndicator,
-  Button,
-  KeyboardAvoidingView,
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
   StyleSheet,
-  TextInput,
+  Text,
   View,
 } from "react-native";
+import { Button } from "../src/components/ui/Button";
+import { Card } from "../src/components/ui/Card";
+import { LottieAnimation } from "../src/components/ui/LottieAnimation";
+import { Colors } from "../src/constants/Colors";
+import { Spacing } from "../src/constants/Spacing";
+// import { Typography } from "../src/constants/Typography";
 
-export default function Index() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const { width, height } = Dimensions.get("window");
 
-  const handleSignUp = async () => {
-    setIsLoading(true);
-    try {
-      await auth().createUserWithEmailAndPassword(email, password);
-      alert("Check your emails!");
-    } catch (e) {
-      const err = e as FirebaseError;
-      alert("Registration failed: " + err.message);
-    } finally {
-      setIsLoading(false);
-    }
+export default function LandingPage() {
+  const router = useRouter();
+
+  const handleLoginPress = () => {
+    router.push("/login");
   };
 
-  const handleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      await auth().signInWithEmailAndPassword(email, password);
-    } catch (e) {
-      const err = e as FirebaseError;
-      alert("Sign in failed: " + err.message);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSignupPress = () => {
+    router.push("/signup");
   };
 
   return (
-    <View style={styles.container}>
-      <KeyboardAvoidingView behavior="padding">
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={Colors.background.primary}
+      />
+
+      {/* Lottie animation as the hero/branding */}
+      <View style={styles.animationContainer}>
+        <LottieAnimation
+          source={require("../assets/landing.json")}
+          style={styles.lottieAnimation}
+          autoPlay
+          loop
+          speed={1}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#007AFF" />
-        ) : (
-          <View style={styles.buttonContainer}>
-            <Button title="Log In" onPress={handleSignIn} />
-            <Button title="Sign Up" onPress={handleSignUp} />
+      </View>
+
+      <Card variant="elevated" style={styles.featuresCard}>
+        <Text style={styles.featuresTitle}>Why PathFinder?</Text>
+        <View style={styles.featuresList}>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>🗺️</Text>
+            <Text style={styles.featureText}>Smart Route Optimization</Text>
           </View>
-        )}
-      </KeyboardAvoidingView>
-    </View>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>⚡</Text>
+            <Text style={styles.featureText}>Real-time Navigation</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>🔒</Text>
+            <Text style={styles.featureText}>Secure & Private</Text>
+          </View>
+        </View>
+      </Card>
+
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Get Started"
+          onPress={handleSignupPress}
+          variant="primary"
+          size="large"
+          style={styles.primaryButton}
+        />
+        <Button
+          title="I already have an account"
+          onPress={handleLoginPress}
+          variant="ghost"
+          size="medium"
+          style={styles.secondaryButton}
+          textStyle={styles.secondaryButtonText}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 100,
-    marginHorizontal: 20,
+    backgroundColor: Colors.background.primary,
+    paddingHorizontal: Spacing.screen.paddingHorizontal,
   },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    marginBottom: 10,
-    marginVertical: 5,
-    borderRadius: 4,
-    backgroundColor: "#ff",
+  animationContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: Spacing.xl,
+    marginTop: Spacing.xl,
+  },
+  lottieAnimation: {
+    width: width * 0.8,
+    height: height * 0.3,
+  },
+  featuresCard: {
+    marginBottom: Spacing.xl,
+  },
+  featuresTitle: {
+    // ...Typography.styles.h3,
+    color: Colors.text.primary,
+    marginBottom: Spacing.lg,
+    textAlign: "center",
+  },
+  featuresList: {
+    gap: Spacing.md,
+  },
+  featureItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  featureIcon: {
+    fontSize: 24,
+    width: 32,
+    textAlign: "center",
+  },
+  featureText: {
+    // ...Typography.styles.body,
+    color: Colors.text.secondary,
+    flex: 1,
   },
   buttonContainer: {
-    gap: 10,
+    paddingBottom: Spacing.xl,
+  },
+  primaryButton: {
+    marginBottom: Spacing.sm,
+    backgroundColor: "grey",
+  },
+  secondaryButton: {
+    // Additional styling if needed
+  },
+  secondaryButtonText: {
+    color: Colors.text.secondary,
   },
 });
