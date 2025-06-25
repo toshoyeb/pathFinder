@@ -18,7 +18,8 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.pathfinder.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
