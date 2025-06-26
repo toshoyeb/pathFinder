@@ -49,7 +49,6 @@ export default function DirectionsPage() {
   const [routeDistance, setRouteDistance] = useState<string | null>(null);
   const [routeDuration, setRouteDuration] = useState<string | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
 
   // Optimization state
   const [travelMode, setTravelMode] = useState<TravelMode>("driving");
@@ -64,7 +63,21 @@ export default function DirectionsPage() {
   const [routes, setRoutes] = useState<any[]>([]); // All route alternatives
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0); // Index of selected route
 
+  // Snackbar state
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
   const insets = useSafeAreaInsets();
+
+  // Show snackbar function
+  const showSnackbar = (message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarVisible(true);
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+      setSnackbarVisible(false);
+    }, 3000);
+  };
 
   useEffect(() => {
     getCurrentLocation();
@@ -79,7 +92,6 @@ export default function DirectionsPage() {
       setRoutePolyline([]);
       setRouteDistance(null);
       setRouteDuration(null);
-      setRouteError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, destination, travelMode, avoid]);
@@ -123,8 +135,33 @@ export default function DirectionsPage() {
 
   const fetchRoutesWithAlternatives = async () => {
     if (!origin || !destination) return;
+
+    // Calculate approximate distance
+    const latDiff = Math.abs(origin.latitude - destination.latitude);
+    const lngDiff = Math.abs(origin.longitude - destination.longitude);
+    const approxDistance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+
+    console.log("Fetching routes with:", {
+      origin,
+      destination,
+      travelMode,
+      avoid,
+      approxDistance,
+    });
+
+    // Check for very short distances (less than ~100 meters)
+    if (approxDistance < 0.001) {
+      showSnackbar("Destination is too close to starting point");
+      setRoutes([]);
+      setRoutePolyline([]);
+      setRouteDistance(null);
+      setRouteDuration(null);
+      setRouteLoading(false);
+      setModalVisible(false);
+      return;
+    }
+
     setRouteLoading(true);
-    setRouteError(null);
     try {
       const alternatives = await getRoutesWithAlternatives(
         origin,
@@ -139,15 +176,29 @@ export default function DirectionsPage() {
       setRouteDistance(alternatives[0].distance);
       setRouteDuration(alternatives[0].duration);
     } catch (error) {
-      setRouteError(
-        error instanceof Error ? error.message : "Failed to get route"
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to get route";
+      console.log("Route fetch error:", errorMessage, "for mode:", travelMode);
+
+      // Auto-fallback to driving mode if other modes fail
+      if (
+        travelMode !== "driving" &&
+        errorMessage.includes("No routes found")
+      ) {
+        console.log("Auto-switching to driving mode due to no routes found");
+        setTravelMode("driving");
+        showSnackbar(`No ${travelMode} routes found. Trying driving mode...`);
+      } else {
+        showSnackbar(errorMessage);
+      }
+
       setRoutes([]);
       setRoutePolyline([]);
       setRouteDistance(null);
       setRouteDuration(null);
     } finally {
       setRouteLoading(false);
+      setModalVisible(false); // Always close modal after route fetch attempt
     }
   };
 
@@ -241,6 +292,7 @@ export default function DirectionsPage() {
 
   // Handle place selection
   const handlePlaceSelected = (place: Place) => {
+    console.log("Place selected:", place, "searchType:", searchType);
     if (searchType === "from") {
       if (place.placeId === "current_location") {
         getCurrentLocation();
@@ -259,16 +311,6 @@ export default function DirectionsPage() {
     } else {
       setDestination(place.coordinates);
       setToInput(place.name);
-      setModalVisible(false);
-
-      // Zoom to fit both origin and destination
-      if (origin) {
-        const optimalRegion = calculateOptimalRegion();
-        if (optimalRegion) {
-          setRegion(optimalRegion);
-          animateToRegion(optimalRegion);
-        }
-      }
     }
     setShowSearch(false);
   };
@@ -278,8 +320,7 @@ export default function DirectionsPage() {
     setShowSearch(true);
   };
 
-  const hasRoute =
-    routeDistance && routeDuration && !routeLoading && !routeError;
+  const hasRoute = routeDistance && routeDuration && !routeLoading;
 
   // Update region when route is calculated
   useEffect(() => {
@@ -293,13 +334,14 @@ export default function DirectionsPage() {
   }, [hasRoute]);
 
   const resetRoute = () => {
+    console.log("resetRoute called");
     setDestination(null);
+    setRoutes([]);
+    setSelectedRouteIdx(0);
     setRoutePolyline([]);
     setRouteDistance(null);
     setRouteDuration(null);
-    setRouteError(null);
     setToInput("");
-
     // Reset to current location view
     if (origin) {
       const newRegion = {
@@ -311,6 +353,24 @@ export default function DirectionsPage() {
       animateToRegion(newRegion);
     }
   };
+
+  // Debug logs for modal state
+  useEffect(() => {
+    console.log("modalVisible:", modalVisible, "hasRoute:", hasRoute);
+  }, [modalVisible, hasRoute]);
+
+  // Add log when opening modal
+  const handleOpenModal = () => {
+    console.log("Opening modal");
+    setModalVisible(true);
+  };
+
+  // When user changes travel mode or avoid filters
+  useEffect(() => {
+    console.log("Filters set:", { travelMode, avoid });
+  }, [travelMode, avoid]);
+
+  console.log("Rendering: hasRoute:", hasRoute, "modalVisible:", modalVisible);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -395,11 +455,7 @@ export default function DirectionsPage() {
               <Text>Calculating route...</Text>
             </View>
           )}
-          {routeError && (
-            <View style={styles.routeCard}>
-              <Text style={{ color: Colors.error[500] }}>{routeError}</Text>
-            </View>
-          )}
+
           {hasRoute && (
             <View style={styles.routeInfoCard}>
               <View style={styles.routeInfoHeader}>
@@ -478,7 +534,7 @@ export default function DirectionsPage() {
                 <View style={styles.actionButtonWrapper}>
                   <Button
                     title="Change Route"
-                    onPress={() => setModalVisible(true)}
+                    onPress={handleOpenModal}
                     variant="secondary"
                   />
                 </View>
@@ -496,7 +552,7 @@ export default function DirectionsPage() {
             <View style={styles.whereToContainer}>
               <Button
                 title="Where to?"
-                onPress={() => setModalVisible(true)}
+                onPress={handleOpenModal}
                 variant="primary"
                 size="large"
               />
@@ -558,6 +614,19 @@ export default function DirectionsPage() {
         label={searchType === "from" ? "From" : "To"}
         hideCurrentLocation={searchType === "to"}
       />
+
+      {/* Snackbar */}
+      {snackbarVisible && (
+        <View style={styles.snackbar}>
+          <Text style={styles.snackbarText}>{snackbarMessage}</Text>
+          <TouchableOpacity
+            onPress={() => setSnackbarVisible(false)}
+            style={styles.snackbarCloseButton}
+          >
+            <Text style={styles.snackbarCloseText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -588,6 +657,39 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  snackbar: {
+    position: "absolute",
+    bottom: 100,
+    left: 16,
+    right: 16,
+    backgroundColor: Colors.error[600],
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  snackbarText: {
+    color: Colors.background.primary,
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+    marginRight: 12,
+  },
+  snackbarCloseButton: {
+    padding: 4,
+  },
+  snackbarCloseText: {
+    color: Colors.background.primary,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   routeText: {
     fontSize: 16,
