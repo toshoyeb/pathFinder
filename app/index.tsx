@@ -13,7 +13,6 @@ import { Card } from "../src/components/ui/Card";
 import { LottieAnimation } from "../src/components/ui/LottieAnimation";
 import { Colors } from "../src/constants/Colors";
 import { Spacing } from "../src/constants/Spacing";
-// import { Typography } from "../src/constants/Typography";
 
 const { width, height } = Dimensions.get("window");
 
@@ -105,7 +104,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   featuresTitle: {
-    // ...Typography.styles.h3,
     color: Colors.text.primary,
     marginBottom: Spacing.lg,
     textAlign: "center",
@@ -124,7 +122,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   featureText: {
-    // ...Typography.styles.body,
     color: Colors.text.secondary,
     flex: 1,
   },
