@@ -1,3 +1,24 @@
+/**
+ * LANDING PAGE - App Entry Point
+ *
+ * This is the main landing/welcome screen that serves as the entry point
+ * for new and returning users who are not authenticated.
+ *
+ * Features:
+ * - Animated Lottie hero section for visual appeal
+ * - App feature highlights to communicate value proposition
+ * - Navigation to login/signup flows
+ *
+ * User Flow:
+ * 1. User opens app -> sees this landing page (if not authenticated)
+ * 2. User can choose "Get Started" (signup) or "I already have an account" (login)
+ * 3. After successful authentication, root layout redirects to /(auth)/home
+ *
+ * Navigation:
+ * - This screen is only shown to unauthenticated users
+ * - Root layout automatically redirects authenticated users to protected routes
+ */
+
 import { useRouter } from "expo-router";
 import React from "react";
 import {

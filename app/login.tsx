@@ -1,3 +1,26 @@
+/**
+ * LOGIN PAGE - User Authentication
+ *
+ * Handles user sign-in using Firebase Authentication with email/password.
+ *
+ * Key Features:
+ * - Form validation for email and password
+ * - Firebase Auth integration with proper error handling
+ * - Automatic navigation after successful login (handled by root layout)
+ * - Responsive design with keyboard avoidance
+ *
+ * Authentication Flow:
+ * 1. User enters email/password and submits
+ * 2. Form validation runs locally
+ * 3. Firebase Auth attempts sign-in
+ * 4. On success: onAuthStateChanged in root layout triggers redirect to /(auth)/home
+ * 5. On error: Display user-friendly error message
+ *
+ * Error Handling:
+ * - Maps Firebase error codes to human-readable messages
+ * - Provides specific feedback for common issues (wrong password, user not found, etc.)
+ */
+
 import auth from "@react-native-firebase/auth";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -20,22 +43,30 @@ import { Spacing } from "../src/constants/Spacing";
 
 export default function LoginPage() {
   const router = useRouter();
+
+  // Form state management
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Prevents multiple submit attempts
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
-  );
+  ); // Form validation errors
 
+  /**
+   * Client-side form validation
+   * Validates email format and password length before attempting Firebase auth
+   */
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
 
+    // Email validation
     if (!email) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Please enter a valid email";
     }
 
+    // Password validation (Firebase requires minimum 6 characters)
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 6) {
@@ -43,17 +74,24 @@ export default function LoginPage() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 0; // Return true if no errors
   };
 
+  /**
+   * Firebase Authentication Handler
+   * Attempts to sign in user and handles various error scenarios
+   */
   const handleLogin = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) return; // Exit early if validation fails
 
     setLoading(true);
     try {
+      // Firebase Auth sign-in attempt
       await auth().signInWithEmailAndPassword(email, password);
-      // Navigation will be handled by the auth state listener in _layout.tsx
+      // Note: Navigation will be handled automatically by the auth state listener in _layout.tsx
+      // No manual navigation needed here
     } catch (error) {
+      // Map Firebase error codes to user-friendly messages
       let errorMessage = "Login failed. Please try again.";
 
       if ((error as any).code === "auth/user-not-found") {
@@ -68,7 +106,7 @@ export default function LoginPage() {
 
       Alert.alert("Login Error", errorMessage);
     } finally {
-      setLoading(false);
+      setLoading(false); // Reset loading state regardless of outcome
     }
   };
 
