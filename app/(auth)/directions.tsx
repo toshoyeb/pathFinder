@@ -1,11 +1,10 @@
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   Modal,
   Pressable,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import {
   View,
 } from "react-native";
 import MapView, { LatLng, Marker, Polyline, Region } from "react-native-maps";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/components/ui/Button";
 import { FullScreenSearch } from "../../src/components/ui/FullScreenSearch";
 import { Colors } from "../../src/constants/Colors";
@@ -35,9 +35,10 @@ interface Place {
 export default function DirectionsPage() {
   const [origin, setOrigin] = useState<LatLng | null>(null);
   const [destination, setDestination] = useState<LatLng | null>(null);
-  const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+  const [region, setRegion] = useState<Region | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   // Route state
   const [routePolyline, setRoutePolyline] = useState<LatLng[]>([]);
@@ -51,7 +52,7 @@ export default function DirectionsPage() {
   const [avoid, setAvoid] = useState<AvoidOption[]>([]);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [fromInput, setFromInput] = useState("Current Location");
+  const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const [searchType, setSearchType] = useState<"from" | "to">("from");
   const [showSearch, setShowSearch] = useState(false);
@@ -90,11 +91,12 @@ export default function DirectionsPage() {
         longitude: location.coords.longitude,
       };
       setOrigin(currentCoord);
-      setInitialRegion({
+      const newRegion = {
         ...currentCoord,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      });
+      };
+      setRegion(newRegion);
     } catch (error) {
       setErrorMsg(
         "Unable to get your current location. Please check your location settings and try again."
@@ -190,6 +192,30 @@ export default function DirectionsPage() {
     </View>
   );
 
+  // Calculate optimal region for both points
+  const calculateOptimalRegion = () => {
+    if (!origin || !destination) return null;
+
+    const midLat = (origin.latitude + destination.latitude) / 2;
+    const midLng = (origin.longitude + destination.longitude) / 2;
+    const latDelta = Math.abs(origin.latitude - destination.latitude) * 1.5;
+    const lngDelta = Math.abs(origin.longitude - destination.longitude) * 1.5;
+
+    return {
+      latitude: midLat,
+      longitude: midLng,
+      latitudeDelta: Math.max(latDelta, 0.01),
+      longitudeDelta: Math.max(lngDelta, 0.01),
+    };
+  };
+
+  // Animate to region
+  const animateToRegion = (newRegion: Region) => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(newRegion, 1000);
+    }
+  };
+
   // Handle place selection
   const handlePlaceSelected = (place: Place) => {
     if (searchType === "from") {
@@ -198,17 +224,28 @@ export default function DirectionsPage() {
         setFromInput("Current Location");
       } else {
         setOrigin(place.coordinates);
-        setInitialRegion({
+        const newRegion = {
           ...place.coordinates,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
-        });
+        };
+        setRegion(newRegion);
+        animateToRegion(newRegion);
         setFromInput(place.name);
       }
     } else {
       setDestination(place.coordinates);
       setToInput(place.name);
       setModalVisible(false);
+
+      // Zoom to fit both origin and destination
+      if (origin) {
+        const optimalRegion = calculateOptimalRegion();
+        if (optimalRegion) {
+          setRegion(optimalRegion);
+          animateToRegion(optimalRegion);
+        }
+      }
     }
     setShowSearch(false);
   };
@@ -216,6 +253,40 @@ export default function DirectionsPage() {
   const openSearch = (type: "from" | "to") => {
     setSearchType(type);
     setShowSearch(true);
+  };
+
+  const hasRoute =
+    routeDistance && routeDuration && !routeLoading && !routeError;
+
+  // Update region when route is calculated
+  useEffect(() => {
+    if (hasRoute && origin && destination) {
+      const optimalRegion = calculateOptimalRegion();
+      if (optimalRegion) {
+        setRegion(optimalRegion);
+        animateToRegion(optimalRegion);
+      }
+    }
+  }, [hasRoute]);
+
+  const resetRoute = () => {
+    setDestination(null);
+    setRoutePolyline([]);
+    setRouteDistance(null);
+    setRouteDuration(null);
+    setRouteError(null);
+    setToInput("");
+
+    // Reset to current location view
+    if (origin) {
+      const newRegion = {
+        ...origin,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(newRegion);
+      animateToRegion(newRegion);
+    }
   };
 
   return (
@@ -246,8 +317,9 @@ export default function DirectionsPage() {
           </View>
         ) : (
           <MapView
+            ref={mapRef}
             style={styles.map}
-            initialRegion={initialRegion || undefined}
+            region={region || undefined}
             onPress={handleMapPress}
             showsUserLocation={true}
             showsMyLocationButton={true}
@@ -277,6 +349,7 @@ export default function DirectionsPage() {
           </MapView>
         )}
       </View>
+
       {/* Route info card */}
       {routeLoading && (
         <View style={styles.routeCard}>
@@ -289,12 +362,32 @@ export default function DirectionsPage() {
           <Text style={{ color: Colors.error[500] }}>{routeError}</Text>
         </View>
       )}
-      {routeDistance && routeDuration && !routeLoading && !routeError && (
-        <View style={styles.routeCard}>
-          <Text style={styles.routeText}>Distance: {routeDistance}</Text>
-          <Text style={styles.routeText}>Duration: {routeDuration}</Text>
+      {hasRoute && (
+        <View style={styles.routeInfoCard}>
+          <View style={styles.routeInfoHeader}>
+            <Text style={styles.routeInfoIcon}>📍</Text>
+            <View style={styles.routeInfoHeaderText}>
+              <Text style={styles.routeInfoTitle}>Route Found</Text>
+              <Text style={styles.routeInfoSubtitle}>
+                {travelMode.charAt(0).toUpperCase() + travelMode.slice(1)} route
+              </Text>
+            </View>
+          </View>
+          <View style={styles.routeInfoDivider} />
+          <View style={styles.routeInfoRow}>
+            <View style={styles.routeInfoItem}>
+              <Text style={styles.routeInfoLabel}>Distance</Text>
+              <Text style={styles.routeInfoValue}>{routeDistance}</Text>
+            </View>
+            <View style={styles.routeInfoSeparator} />
+            <View style={styles.routeInfoItem}>
+              <Text style={styles.routeInfoLabel}>Duration</Text>
+              <Text style={styles.routeInfoValue}>{routeDuration}</Text>
+            </View>
+          </View>
         </View>
       )}
+
       {/* Optimization filters */}
       <View style={styles.filtersContainer}>
         <Text style={styles.filtersTitle}>Travel Mode</Text>
@@ -302,15 +395,36 @@ export default function DirectionsPage() {
         <Text style={styles.filtersTitle}>Avoid</Text>
         {renderAvoidOptions()}
       </View>
+
+      {/* Action buttons */}
+      {hasRoute && (
+        <View style={styles.actionButtonsContainer}>
+          <View style={styles.actionButtons}>
+            <View style={styles.actionButtonWrapper}>
+              <Button
+                title="Change Route"
+                onPress={() => setModalVisible(true)}
+                variant="secondary"
+              />
+            </View>
+            <View style={styles.actionButtonWrapper}>
+              <Button title="Reset" onPress={resetRoute} variant="secondary" />
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Where to? button */}
-      <View style={styles.whereToContainer}>
-        <Button
-          title="Where to?"
-          onPress={() => setModalVisible(true)}
-          variant="primary"
-          size="large"
-        />
-      </View>
+      {!hasRoute && (
+        <View style={styles.whereToContainer}>
+          <Button
+            title="Where to?"
+            onPress={() => setModalVisible(true)}
+            variant="primary"
+            size="large"
+          />
+        </View>
+      )}
 
       {/* Full-screen Modal for place search */}
       <Modal
@@ -360,7 +474,7 @@ export default function DirectionsPage() {
         currentLocation={origin || undefined}
         initialValue={searchType === "from" ? fromInput : toInput}
         placeholder={
-          searchType === "from" ? "Search starting point" : "Search destination"
+          searchType === "from" ? "Search a place" : "Search destination"
         }
         label={searchType === "from" ? "From" : "To"}
         hideCurrentLocation={searchType === "to"}
@@ -483,5 +597,77 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     backgroundColor: Colors.primary[100],
+  },
+  actionButtonsContainer: {
+    padding: 16,
+    paddingBottom: 16 + 30, // Extra padding for Android navigation tray
+    backgroundColor: Colors.background.primary,
+    alignItems: "center",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  actionButtonWrapper: {
+    flex: 1,
+  },
+  routeInfoCard: {
+    backgroundColor: Colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: Colors.primary[100],
+    padding: 16,
+    marginBottom: 8,
+  },
+  routeInfoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  routeInfoIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  routeInfoHeaderText: {
+    flex: 1,
+  },
+  routeInfoTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text.primary,
+    marginBottom: 2,
+  },
+  routeInfoSubtitle: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  routeInfoDivider: {
+    height: 1,
+    backgroundColor: Colors.primary[200],
+    width: "100%",
+    marginVertical: 12,
+  },
+  routeInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  routeInfoItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  routeInfoLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginBottom: 4,
+  },
+  routeInfoValue: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.primary[700],
+  },
+  routeInfoSeparator: {
+    width: 1,
+    height: 40,
+    backgroundColor: Colors.primary[200],
   },
 });

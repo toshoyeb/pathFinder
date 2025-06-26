@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "pathFinder",
-    "slug": "pathFinder",
+    "slug": "pathfinder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -58,6 +58,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "88ac0d83-14d3-4003-9979-e4719c161fc2"
+      }
+    },
+    "owner": "toshoyeb"
   }
 }
