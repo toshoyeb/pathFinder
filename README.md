@@ -11,6 +11,18 @@ A React Native mobile application built with Expo that provides intelligent rout
 
 APK LINK: https://expo.dev/accounts/toshoyeb/projects/pathfinder/builds/5e212037-2656-428c-9b0b-7db61798e71a
 
+## 📸 App Screenshots
+
+<p align="center">
+  <img src="./assets/screenshot/1.jpg" width="200" style="margin: 10px;" />
+  <img src="./assets/screenshot/2.jpg" width="200" style="margin: 10px;" />
+  <img src="./assets/screenshot/3.jpg" width="200" style="margin: 10px;" />
+  <img src="./assets/screenshot/4.jpg" width="200" style="margin: 10px;" />
+  <img src="./assets/screenshot/5.jpg" width="200" style="margin: 10px;" />
+  <img src="./assets/screenshot/6.jpg" width="200" style="margin: 10px;" />
+  <img src="./assets/screenshot/7.jpg" width="200" style="margin: 10px;" />
+</p>
+
 ## ✨ Features
 
 ### 🔐 Authentication & Security
