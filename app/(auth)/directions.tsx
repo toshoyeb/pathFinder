@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
+  Modal,
+  Pressable,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -12,6 +14,7 @@ import {
 } from "react-native";
 import MapView, { LatLng, Marker, Polyline, Region } from "react-native-maps";
 import { Button } from "../../src/components/ui/Button";
+import { FullScreenSearch } from "../../src/components/ui/FullScreenSearch";
 import { Colors } from "../../src/constants/Colors";
 import { getRouteBetweenPoints } from "../../src/services/directionsService";
 
@@ -21,6 +24,13 @@ const TRAVEL_MODES = ["driving", "walking", "bicycling", "transit"] as const;
 type TravelMode = typeof TRAVEL_MODES[number];
 const AVOID_OPTIONS = ["tolls", "highways", "ferries"] as const;
 type AvoidOption = typeof AVOID_OPTIONS[number];
+
+interface Place {
+  placeId: string;
+  name: string;
+  address: string;
+  coordinates: { latitude: number; longitude: number };
+}
 
 export default function DirectionsPage() {
   const [origin, setOrigin] = useState<LatLng | null>(null);
@@ -39,6 +49,12 @@ export default function DirectionsPage() {
   // Optimization state
   const [travelMode, setTravelMode] = useState<TravelMode>("driving");
   const [avoid, setAvoid] = useState<AvoidOption[]>([]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [fromInput, setFromInput] = useState("Current Location");
+  const [toInput, setToInput] = useState("");
+  const [searchType, setSearchType] = useState<"from" | "to">("from");
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     getCurrentLocation();
@@ -151,19 +167,20 @@ export default function DirectionsPage() {
           key={opt}
           style={[
             styles.optionButton,
-            avoid.includes(opt) && styles.optionButtonSelected,
+            (avoid || []).includes(opt) && styles.optionButtonSelected,
           ]}
           onPress={() =>
-            setAvoid((prev) =>
-              prev.includes(opt)
-                ? prev.filter((a) => a !== opt)
-                : [...prev, opt]
-            )
+            setAvoid((prev) => {
+              const currentAvoid = prev || [];
+              return currentAvoid.includes(opt)
+                ? currentAvoid.filter((a) => a !== opt)
+                : [...currentAvoid, opt];
+            })
           }
         >
           <Text
             style={
-              avoid.includes(opt)
+              (avoid || []).includes(opt)
                 ? styles.optionTextSelected
                 : styles.optionText
             }
@@ -172,6 +189,34 @@ export default function DirectionsPage() {
       ))}
     </View>
   );
+
+  // Handle place selection
+  const handlePlaceSelected = (place: Place) => {
+    if (searchType === "from") {
+      if (place.placeId === "current_location") {
+        getCurrentLocation();
+        setFromInput("Current Location");
+      } else {
+        setOrigin(place.coordinates);
+        setInitialRegion({
+          ...place.coordinates,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+        setFromInput(place.name);
+      }
+    } else {
+      setDestination(place.coordinates);
+      setToInput(place.name);
+      setModalVisible(false);
+    }
+    setShowSearch(false);
+  };
+
+  const openSearch = (type: "from" | "to") => {
+    setSearchType(type);
+    setShowSearch(true);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -257,7 +302,69 @@ export default function DirectionsPage() {
         <Text style={styles.filtersTitle}>Avoid</Text>
         {renderAvoidOptions()}
       </View>
-      {/* The rest of the UI (change/reset, place search) will be added in next steps */}
+      {/* Where to? button */}
+      <View style={styles.whereToContainer}>
+        <Button
+          title="Where to?"
+          onPress={() => setModalVisible(true)}
+          variant="primary"
+          size="large"
+        />
+      </View>
+
+      {/* Full-screen Modal for place search */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <SafeAreaView style={styles.fullModalContainer}>
+          <Text style={styles.modalTitle}>Select Route</Text>
+          <View style={styles.searchCard}>
+            <Text style={styles.inputLabel}>From</Text>
+            <Pressable
+              style={styles.searchInput}
+              onPress={() => openSearch("from")}
+            >
+              <Text style={styles.searchInputText}>
+                {fromInput || "Search starting point"}
+              </Text>
+            </Pressable>
+          </View>
+          <View style={styles.searchCard}>
+            <Text style={styles.inputLabel}>To</Text>
+            <Pressable
+              style={styles.searchInput}
+              onPress={() => openSearch("to")}
+            >
+              <Text style={styles.searchInputText}>
+                {toInput || "Search destination"}
+              </Text>
+            </Pressable>
+          </View>
+          <Pressable
+            style={styles.closeModalButton}
+            onPress={() => setModalVisible(false)}
+          >
+            <Text style={{ color: Colors.primary[700] }}>Close</Text>
+          </Pressable>
+        </SafeAreaView>
+      </Modal>
+
+      {/* FullScreenSearch component */}
+      <FullScreenSearch
+        visible={showSearch}
+        onClose={() => setShowSearch(false)}
+        onPlaceSelected={handlePlaceSelected}
+        currentLocation={origin || undefined}
+        initialValue={searchType === "from" ? fromInput : toInput}
+        placeholder={
+          searchType === "from" ? "Search starting point" : "Search destination"
+        }
+        label={searchType === "from" ? "From" : "To"}
+        hideCurrentLocation={searchType === "to"}
+      />
     </SafeAreaView>
   );
 }
@@ -330,5 +437,51 @@ const styles = StyleSheet.create({
     color: Colors.primary[700],
     fontWeight: "700",
     fontSize: 14,
+  },
+  whereToContainer: {
+    padding: 16,
+    backgroundColor: Colors.background.primary,
+    alignItems: "center",
+  },
+  fullModalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+    padding: 16,
+  },
+  searchCard: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginBottom: 4,
+    marginLeft: 4,
+  },
+  searchInput: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+    minHeight: 44,
+  },
+  searchInputText: {
+    color: Colors.text.primary,
+    fontSize: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: Colors.text.primary,
+  },
+  closeModalButton: {
+    marginTop: 24,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.primary[100],
   },
 });
