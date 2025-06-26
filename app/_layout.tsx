@@ -26,6 +26,7 @@
 
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { Stack, useRouter, useSegments } from "expo-router";
+import * as Updates from "expo-updates";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
@@ -79,6 +80,23 @@ export default function RootLayout() {
       router.replace("/");
     }
   }, [user, segments, initializing]); // Re-run when auth state or route changes
+
+  // ✅ EAS Update Check on App Start
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        console.log("Error checking for updates:", e);
+      }
+    };
+
+    checkForUpdates();
+  }, []);
 
   /**
    * Loading State - Show spinner while determining authentication status
