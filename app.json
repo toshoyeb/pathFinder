@@ -65,6 +65,12 @@
         "projectId": "88ac0d83-14d3-4003-9979-e4719c161fc2"
       }
     },
-    "owner": "toshoyeb"
+    "owner": "toshoyeb",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/88ac0d83-14d3-4003-9979-e4719c161fc2"
+    }
   }
 }
