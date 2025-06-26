@@ -820,7 +820,6 @@ export default function DirectionsPage() {
                     {idx === 0
                       ? "Fastest" // First route is always the fastest
                       : route.summary || `Route ${idx + 1}`}{" "}
-                    // Use Google summary or fallback
                   </Text>
 
                   {/* BASIC ROUTE INFO - Distance and duration */}

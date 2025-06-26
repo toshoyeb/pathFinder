@@ -46,6 +46,8 @@ export default function HomePage() {
             onPress={handleLogout}
             variant="outline"
             size="small"
+            textStyle={{ color: "black" }}
+            style={{ backgroundColor: "#fff", borderColor: "black" }}
           />
         </View>
 
@@ -64,7 +66,7 @@ export default function HomePage() {
           />
         </View>
 
-        {/* Quick Features */}
+        {/* Quick Features
         <View style={styles.featuresSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.featuresGrid}>
@@ -84,7 +86,7 @@ export default function HomePage() {
               </Text>
             </View>
           </View>
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -122,6 +124,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.xl,
     paddingVertical: Spacing.xl,
+    flex: 1,
   },
   mainTitle: {
     fontSize: 32,
@@ -137,6 +140,7 @@ const styles = StyleSheet.create({
   },
   directionsButton: {
     minWidth: 200,
+    backgroundColor: "grey",
   },
   featuresSection: {
     marginBottom: Spacing.xl,
