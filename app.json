@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "pathFinder",
-    "slug": "pathFinder",
+    "slug": "pathfinder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,7 +19,12 @@
       },
       "package": "com.pathfinder.app",
       "edgeToEdgeEnabled": true,
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDvJ3M-h7McA6wMT78rZlSAkXC3lX-P9uI"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -53,6 +58,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "88ac0d83-14d3-4003-9979-e4719c161fc2"
+      }
+    },
+    "owner": "toshoyeb"
   }
 }

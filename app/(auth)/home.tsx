@@ -1,14 +1,15 @@
 import auth from "@react-native-firebase/auth";
+import { useRouter } from "expo-router";
 import React from "react";
 import { ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/components/ui/Button";
-import { Card } from "../../src/components/ui/Card";
 import { Colors } from "../../src/constants/Colors";
 import { Spacing } from "../../src/constants/Spacing";
 
 export default function HomePage() {
   const user = auth().currentUser;
+  const router = useRouter();
 
   const handleLogout = async () => {
     try {
@@ -16,6 +17,10 @@ export default function HomePage() {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  const handleGetDirections = () => {
+    router.push("/(auth)/directions");
   };
 
   return (
@@ -44,64 +49,42 @@ export default function HomePage() {
           />
         </View>
 
-        {/* Welcome Card */}
-        <Card variant="elevated" style={styles.welcomeCard}>
-          <Text style={styles.welcomeTitle}>🧭 PathFinder</Text>
-          <Text style={styles.welcomeSubtitle}>
+        {/* Main Action */}
+        <View style={styles.mainAction}>
+          <Text style={styles.mainTitle}>🧭 PathFinder</Text>
+          <Text style={styles.mainSubtitle}>
             Your intelligent navigation companion
           </Text>
-          <Text style={styles.welcomeDescription}>
-            Ready to discover optimized routes? Let's start exploring with smart
-            navigation features.
-          </Text>
-        </Card>
-
-        {/* Features Grid */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>What's Next?</Text>
-          <View style={styles.featuresGrid}>
-            <Card variant="default" style={styles.featureCard}>
-              <Text style={styles.featureIcon}>🗺️</Text>
-              <Text style={styles.featureTitle}>Map View</Text>
-              <Text style={styles.featureDescription}>
-                Interactive map with route planning
-              </Text>
-            </Card>
-
-            <Card variant="default" style={styles.featureCard}>
-              <Text style={styles.featureIcon}>📍</Text>
-              <Text style={styles.featureTitle}>Location Search</Text>
-              <Text style={styles.featureDescription}>
-                Find and select destinations
-              </Text>
-            </Card>
-
-            <Card variant="default" style={styles.featureCard}>
-              <Text style={styles.featureIcon}>⚡</Text>
-              <Text style={styles.featureTitle}>Route Optimization</Text>
-              <Text style={styles.featureDescription}>
-                Smart pathfinding algorithms
-              </Text>
-            </Card>
-
-            <Card variant="default" style={styles.featureCard}>
-              <Text style={styles.featureIcon}>📊</Text>
-              <Text style={styles.featureTitle}>Analytics</Text>
-              <Text style={styles.featureDescription}>
-                Track your navigation history
-              </Text>
-            </Card>
-          </View>
+          <Button
+            title="🗺️ Get Directions"
+            onPress={handleGetDirections}
+            variant="primary"
+            size="large"
+            style={styles.directionsButton}
+          />
         </View>
 
-        {/* Coming Soon */}
-        <Card variant="outlined" style={styles.comingSoonCard}>
-          <Text style={styles.comingSoonTitle}>🚀 Coming Soon</Text>
-          <Text style={styles.comingSoonDescription}>
-            We're working hard to bring you advanced features like real-time
-            traffic updates, multiple route options, and offline navigation.
-          </Text>
-        </Card>
+        {/* Quick Features */}
+        <View style={styles.featuresSection}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.featuresGrid}>
+            <View style={styles.featureCard}>
+              <Text style={styles.featureIcon}>📍</Text>
+              <Text style={styles.featureTitle}>Current Location</Text>
+              <Text style={styles.featureDescription}>
+                Get your current position
+              </Text>
+            </View>
+
+            <View style={styles.featureCard}>
+              <Text style={styles.featureIcon}>🎯</Text>
+              <Text style={styles.featureTitle}>Route Planning</Text>
+              <Text style={styles.featureDescription}>
+                Plan optimized routes
+              </Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -126,64 +109,67 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   greeting: {
+    fontSize: 24,
+    fontWeight: "600",
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   userEmail: {
+    fontSize: 14,
     color: Colors.text.secondary,
   },
-  welcomeCard: {
+  mainAction: {
+    alignItems: "center",
     marginBottom: Spacing.xl,
+    paddingVertical: Spacing.xl,
   },
-  welcomeTitle: {
+  mainTitle: {
+    fontSize: 32,
+    fontWeight: "700",
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
-  welcomeSubtitle: {
-    color: Colors.primary[600],
-    marginBottom: Spacing.md,
-  },
-  welcomeDescription: {
+  mainSubtitle: {
+    fontSize: 16,
     color: Colors.text.secondary,
+    textAlign: "center",
+    marginBottom: Spacing.lg,
+  },
+  directionsButton: {
+    minWidth: 200,
   },
   featuresSection: {
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
     color: Colors.text.primary,
     marginBottom: Spacing.lg,
   },
   featuresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: Spacing.md,
   },
   featureCard: {
-    width: "48%",
-    alignItems: "center",
+    backgroundColor: Colors.background.secondary,
     padding: Spacing.md,
+    borderRadius: Spacing.card.borderRadius,
+    alignItems: "center",
   },
   featureIcon: {
     fontSize: 32,
     marginBottom: Spacing.sm,
   },
   featureTitle: {
+    fontSize: 16,
+    fontWeight: "600",
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
     textAlign: "center",
   },
   featureDescription: {
+    fontSize: 14,
     color: Colors.text.secondary,
     textAlign: "center",
-  },
-  comingSoonCard: {
-    marginBottom: Spacing.lg,
-  },
-  comingSoonTitle: {
-    color: Colors.text.primary,
-    marginBottom: Spacing.sm,
-  },
-  comingSoonDescription: {
-    color: Colors.text.secondary,
   },
 });
