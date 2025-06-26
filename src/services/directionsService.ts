@@ -44,13 +44,18 @@ export async function getRouteBetweenPoints(
   origin: LatLng,
   destination: LatLng,
   mode: "driving" | "walking" | "bicycling" | "transit" = "driving",
+  avoid: string[] = [],
   optimize: boolean = false
 ): Promise<{ polyline: LatLng[]; distance: string; duration: string }> {
   const originStr = `${origin.latitude},${origin.longitude}`;
   const destinationStr = `${destination.latitude},${destination.longitude}`;
-  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destinationStr}&mode=${mode}&key=${GOOGLE_MAPS_API_KEY}${
-    optimize ? "&optimize=true" : ""
-  }`;
+  let url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destinationStr}&mode=${mode}&key=${GOOGLE_MAPS_API_KEY}`;
+  if (avoid.length > 0) {
+    url += `&avoid=${avoid.join("|")}`;
+  }
+  if (optimize) {
+    url += "&optimize=true";
+  }
 
   const response = await axios.get(url);
   if (response.data.status !== "OK") {

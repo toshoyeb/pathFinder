@@ -54,7 +54,7 @@ export default function DirectionsPage() {
       setRouteError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination]);
+  }, [origin, destination, travelMode, avoid]);
 
   const getCurrentLocation = async () => {
     try {
@@ -97,7 +97,12 @@ export default function DirectionsPage() {
     setRouteLoading(true);
     setRouteError(null);
     try {
-      const result = await getRouteBetweenPoints(origin, destination);
+      const result = await getRouteBetweenPoints(
+        origin,
+        destination,
+        travelMode,
+        avoid
+      );
       setRoutePolyline(result.polyline);
       setRouteDistance(result.distance);
       setRouteDuration(result.duration);
