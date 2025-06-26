@@ -20,7 +20,7 @@ import {
 import { Button } from "../../src/components/ui/Button";
 import { FullScreenSearch } from "../../src/components/ui/FullScreenSearch";
 import { Colors } from "../../src/constants/Colors";
-import { getRouteBetweenPoints } from "../../src/services/directionsService";
+import { getRoutesWithAlternatives } from "../../src/services/directionsService";
 
 const { height } = Dimensions.get("window");
 
@@ -61,6 +61,9 @@ export default function DirectionsPage() {
   const [searchType, setSearchType] = useState<"from" | "to">("from");
   const [showSearch, setShowSearch] = useState(false);
 
+  const [routes, setRoutes] = useState<any[]>([]); // All route alternatives
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState(0); // Index of selected route
+
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -69,8 +72,10 @@ export default function DirectionsPage() {
 
   useEffect(() => {
     if (origin && destination) {
-      fetchRoute();
+      fetchRoutesWithAlternatives();
     } else {
+      setRoutes([]);
+      setSelectedRouteIdx(0);
       setRoutePolyline([]);
       setRouteDistance(null);
       setRouteDuration(null);
@@ -116,30 +121,42 @@ export default function DirectionsPage() {
     setDestination(e.nativeEvent.coordinate);
   };
 
-  const fetchRoute = async () => {
+  const fetchRoutesWithAlternatives = async () => {
     if (!origin || !destination) return;
     setRouteLoading(true);
     setRouteError(null);
     try {
-      const result = await getRouteBetweenPoints(
+      const alternatives = await getRoutesWithAlternatives(
         origin,
         destination,
         travelMode,
         avoid
       );
-      setRoutePolyline(result.polyline);
-      setRouteDistance(result.distance);
-      setRouteDuration(result.duration);
+      setRoutes(alternatives);
+      setSelectedRouteIdx(0);
+      // Set the first route as default
+      setRoutePolyline(alternatives[0].polyline);
+      setRouteDistance(alternatives[0].distance);
+      setRouteDuration(alternatives[0].duration);
     } catch (error) {
       setRouteError(
         error instanceof Error ? error.message : "Failed to get route"
       );
+      setRoutes([]);
       setRoutePolyline([]);
       setRouteDistance(null);
       setRouteDuration(null);
     } finally {
       setRouteLoading(false);
     }
+  };
+
+  // When user selects a different route
+  const handleSelectRoute = (idx: number) => {
+    setSelectedRouteIdx(idx);
+    setRoutePolyline(routes[idx].polyline);
+    setRouteDistance(routes[idx].distance);
+    setRouteDuration(routes[idx].duration);
   };
 
   // UI for travel mode and avoid options
@@ -408,6 +425,44 @@ export default function DirectionsPage() {
                 </View>
               </View>
             </View>
+          )}
+          {hasRoute && routes.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.routesSelector}
+              contentContainerStyle={{
+                gap: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+              }}
+            >
+              {routes.map((route, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={[
+                    styles.routeOption,
+                    idx === selectedRouteIdx && styles.routeOptionSelected,
+                  ]}
+                  onPress={() => handleSelectRoute(idx)}
+                >
+                  <Text style={styles.routeOptionLabel}>
+                    {idx === 0
+                      ? "Fastest"
+                      : route.summary || `Route ${idx + 1}`}
+                  </Text>
+                  <Text style={styles.routeOptionInfo}>
+                    {route.distance} • {route.duration}
+                  </Text>
+                  {route.trafficDuration &&
+                    route.trafficDuration !== route.duration && (
+                      <Text style={styles.routeOptionTraffic}>
+                        Traffic: {route.trafficDuration}
+                      </Text>
+                    )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           )}
           {hasRoute && (
             <View style={styles.filtersContainer}>
@@ -707,5 +762,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 8,
+  },
+  routesSelector: {
+    marginBottom: 8,
+  },
+  routeOption: {
+    backgroundColor: Colors.primary[50],
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: Colors.primary[100],
+    alignItems: "center",
+    minWidth: 110,
+  },
+  routeOptionSelected: {
+    backgroundColor: Colors.primary[100],
+    borderColor: Colors.primary[500],
+  },
+  routeOptionLabel: {
+    fontWeight: "700",
+    color: Colors.primary[700],
+    marginBottom: 2,
+  },
+  routeOptionInfo: {
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  routeOptionTraffic: {
+    fontSize: 12,
+    color: Colors.error[500],
+    marginTop: 2,
   },
 });

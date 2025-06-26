@@ -63,10 +63,55 @@ export async function getRouteBetweenPoints(
   }
   const route = response.data.routes[0];
   const leg = route.legs[0];
-  const polyline = decodePolyline(route.overview_polyline.points);
+  const decodedPolyline = decodePolyline(route.overview_polyline.points);
   return {
-    polyline,
+    polyline: decodedPolyline,
     distance: leg.distance.text,
     duration: leg.duration.text,
   };
+}
+
+export async function getRoutesWithAlternatives(
+  origin: LatLng,
+  destination: LatLng,
+  mode = "driving",
+  avoid: string[] = []
+) {
+  const params = [
+    `origin=${origin.latitude},${origin.longitude}`,
+    `destination=${destination.latitude},${destination.longitude}`,
+    `mode=${mode}`,
+    `alternatives=true`,
+    `key=${GOOGLE_MAPS_API_KEY}`,
+    `language=en`,
+  ];
+  if (avoid.length > 0) {
+    params.push(`avoid=${avoid.join("|")}`);
+  }
+  if (mode === "driving") {
+    params.push("departure_time=now");
+    // less_driving, less_walking, less_bicycling, less_transit
+    params.push("routing_preference=less_driving");
+  }
+  const url = `https://maps.googleapis.com/maps/api/directions/json?${params.join(
+    "&"
+  )}`;
+  const res = await axios.get(url);
+  if (!res.data.routes || res.data.routes.length === 0) {
+    throw new Error("No routes found");
+  }
+  return res.data.routes.map((route: any, idx: number) => {
+    const leg = route.legs[0];
+    return {
+      polyline: decodePolyline(route.overview_polyline.points),
+      distance: leg.distance.text,
+      duration: leg.duration.text,
+      trafficDuration: leg.duration_in_traffic
+        ? leg.duration_in_traffic.text
+        : null,
+      summary: route.summary || `Route ${idx + 1}`,
+      routeIndex: idx,
+      raw: route,
+    };
+  });
 }
