@@ -19,7 +19,12 @@
       },
       "package": "com.pathfinder.app",
       "edgeToEdgeEnabled": true,
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDvJ3M-h7McA6wMT78rZlSAkXC3lX-P9uI"
+        }
+      }
     },
     "web": {
       "bundler": "metro",

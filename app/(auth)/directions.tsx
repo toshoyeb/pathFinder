@@ -1,38 +1,65 @@
-import React, { useState } from "react";
+import * as Location from "expo-location";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
+  Dimensions,
   SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import MapView from "react-native-maps";
+import MapView, { LatLng, Marker, Region } from "react-native-maps";
 import { Button } from "../../src/components/ui/Button";
 import { Colors } from "../../src/constants/Colors";
-import { Spacing } from "../../src/constants/Spacing";
+
+const { height } = Dimensions.get("window");
 
 export default function DirectionsPage() {
-  const [origin, setOrigin] = useState(null);
-  const [destination, setDestination] = useState(null);
+  const [origin, setOrigin] = useState<LatLng | null>(null);
+  const [destination, setDestination] = useState<LatLng | null>(null);
+  const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleLocateMe = () => {
-    Alert.alert("Locate Me", "This will get your current location");
-    // TODO: Implement current location functionality
-  };
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
 
-  const handleSelectDestination = () => {
-    Alert.alert("Select Destination", "This will open location picker");
-    // TODO: Implement destination selection
-  };
-
-  const handleGetDirections = () => {
-    if (!origin || !destination) {
-      Alert.alert("Error", "Please select both origin and destination");
-      return;
+  const getCurrentLocation = async () => {
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        setLoading(false);
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+      const currentCoord = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setOrigin(currentCoord);
+      setInitialRegion({
+        ...currentCoord,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    } catch (error) {
+      setErrorMsg(
+        "Unable to get your current location. Please check your location settings and try again."
+      );
+    } finally {
+      setLoading(false);
     }
-    Alert.alert("Get Directions", "This will calculate the route");
-    // TODO: Implement route calculation
+  };
+
+  const handleMapPress = (e: any) => {
+    setDestination(e.nativeEvent.coordinate);
   };
 
   return (
@@ -41,65 +68,53 @@ export default function DirectionsPage() {
         barStyle="dark-content"
         backgroundColor={Colors.background.primary}
       />
-
-      {/* Map View */}
       <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        >
-          {/* TODO: Add markers for origin and destination */}
-        </MapView>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary[500]} />
+            <Text>Getting your location...</Text>
+            {errorMsg && (
+              <Text style={{ color: Colors.error[500], marginTop: 8 }}>
+                {errorMsg}
+              </Text>
+            )}
+            {errorMsg && (
+              <Button
+                title="Retry"
+                onPress={getCurrentLocation}
+                variant="outline"
+                size="small"
+                style={{ marginTop: 12 }}
+              />
+            )}
+          </View>
+        ) : (
+          <MapView
+            style={styles.map}
+            initialRegion={initialRegion || undefined}
+            onPress={handleMapPress}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
+            mapType="standard"
+          >
+            {origin && (
+              <Marker
+                coordinate={origin}
+                title="Origin"
+                description="Current Location"
+              />
+            )}
+            {destination && (
+              <Marker
+                coordinate={destination}
+                title="Destination"
+                pinColor="blue"
+              />
+            )}
+          </MapView>
+        )}
       </View>
-
-      {/* Control Panel */}
-      <View style={styles.controlPanel}>
-        <View style={styles.locationInfo}>
-          <Text style={styles.locationLabel}>From:</Text>
-          <Text style={styles.locationText}>
-            {origin
-              ? "Location selected"
-              : 'Tap "Locate Me" or select location'}
-          </Text>
-
-          <Text style={styles.locationLabel}>To:</Text>
-          <Text style={styles.locationText}>
-            {destination ? "Location selected" : 'Tap "Select Destination"'}
-          </Text>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <Button
-            title="📍 Locate Me"
-            onPress={handleLocateMe}
-            variant="primary"
-            size="medium"
-            style={styles.button}
-          />
-
-          <Button
-            title="🎯 Select Destination"
-            onPress={handleSelectDestination}
-            variant="outline"
-            size="medium"
-            style={styles.button}
-          />
-
-          <Button
-            title="🚀 Get Directions"
-            onPress={handleGetDirections}
-            variant="primary"
-            size="large"
-            style={styles.directionsButton}
-            disabled={!origin || !destination}
-          />
-        </View>
-      </View>
+      {/* The rest of the UI (card, filters, etc.) will be added in next steps */}
     </SafeAreaView>
   );
 }
@@ -110,39 +125,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
   },
   mapContainer: {
-    flex: 1,
+    height: height * 0.6,
+    width: "100%",
   },
   map: {
     width: "100%",
     height: "100%",
   },
-  controlPanel: {
-    backgroundColor: Colors.background.primary,
-    padding: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
-  },
-  locationInfo: {
-    marginBottom: Spacing.md,
-  },
-  locationLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text.primary,
-    marginTop: Spacing.sm,
-  },
-  locationText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  buttonContainer: {
-    gap: Spacing.sm,
-  },
-  button: {
-    marginBottom: Spacing.xs,
-  },
-  directionsButton: {
-    marginTop: Spacing.sm,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
   },
 });
