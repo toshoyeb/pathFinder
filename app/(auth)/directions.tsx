@@ -5,6 +5,7 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -12,7 +13,10 @@ import {
   View,
 } from "react-native";
 import MapView, { LatLng, Marker, Polyline, Region } from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Button } from "../../src/components/ui/Button";
 import { FullScreenSearch } from "../../src/components/ui/FullScreenSearch";
 import { Colors } from "../../src/constants/Colors";
@@ -56,6 +60,8 @@ export default function DirectionsPage() {
   const [toInput, setToInput] = useState("");
   const [searchType, setSearchType] = useState<"from" | "to">("from");
   const [showSearch, setShowSearch] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     getCurrentLocation();
@@ -330,13 +336,14 @@ export default function DirectionsPage() {
                 coordinate={origin}
                 title="Origin"
                 description="Current Location"
+                pinColor="aqua"
               />
             )}
             {destination && (
               <Marker
                 coordinate={destination}
                 title="Destination"
-                pinColor="blue"
+                pinColor="red"
               />
             )}
             {routePolyline.length > 0 && (
@@ -350,81 +357,98 @@ export default function DirectionsPage() {
         )}
       </View>
 
-      {/* Route info card */}
-      {routeLoading && (
-        <View style={styles.routeCard}>
-          <ActivityIndicator size="small" color={Colors.primary[500]} />
-          <Text>Calculating route...</Text>
-        </View>
-      )}
-      {routeError && (
-        <View style={styles.routeCard}>
-          <Text style={{ color: Colors.error[500] }}>{routeError}</Text>
-        </View>
-      )}
-      {hasRoute && (
-        <View style={styles.routeInfoCard}>
-          <View style={styles.routeInfoHeader}>
-            <Text style={styles.routeInfoIcon}>📍</Text>
-            <View style={styles.routeInfoHeaderText}>
-              <Text style={styles.routeInfoTitle}>Route Found</Text>
-              <Text style={styles.routeInfoSubtitle}>
-                {travelMode.charAt(0).toUpperCase() + travelMode.slice(1)} route
-              </Text>
+      {/* Bottom Panel - absolutely positioned */}
+      <SafeAreaView
+        edges={["bottom"]}
+        style={[
+          styles.bottomPanel,
+          hasRoute
+            ? { maxHeight: height * 0.55, paddingBottom: insets.bottom + 16 }
+            : {},
+        ]}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {routeLoading && (
+            <View style={styles.routeCard}>
+              <ActivityIndicator size="small" color={Colors.primary[500]} />
+              <Text>Calculating route...</Text>
             </View>
-          </View>
-          <View style={styles.routeInfoDivider} />
-          <View style={styles.routeInfoRow}>
-            <View style={styles.routeInfoItem}>
-              <Text style={styles.routeInfoLabel}>Distance</Text>
-              <Text style={styles.routeInfoValue}>{routeDistance}</Text>
+          )}
+          {routeError && (
+            <View style={styles.routeCard}>
+              <Text style={{ color: Colors.error[500] }}>{routeError}</Text>
             </View>
-            <View style={styles.routeInfoSeparator} />
-            <View style={styles.routeInfoItem}>
-              <Text style={styles.routeInfoLabel}>Duration</Text>
-              <Text style={styles.routeInfoValue}>{routeDuration}</Text>
+          )}
+          {hasRoute && (
+            <View style={styles.routeInfoCard}>
+              <View style={styles.routeInfoHeader}>
+                <Text style={styles.routeInfoIcon}>📍</Text>
+                <View style={styles.routeInfoHeaderText}>
+                  <Text style={styles.routeInfoTitle}>Route Found</Text>
+                  <Text style={styles.routeInfoSubtitle}>
+                    {travelMode.charAt(0).toUpperCase() + travelMode.slice(1)}{" "}
+                    route
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.routeInfoDivider} />
+              <View style={styles.routeInfoRow}>
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>Distance</Text>
+                  <Text style={styles.routeInfoValue}>{routeDistance}</Text>
+                </View>
+                <View style={styles.routeInfoSeparator} />
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>Duration</Text>
+                  <Text style={styles.routeInfoValue}>{routeDuration}</Text>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
-      )}
-
-      {/* Optimization filters */}
-      <View style={styles.filtersContainer}>
-        <Text style={styles.filtersTitle}>Travel Mode</Text>
-        {renderTravelModeOptions()}
-        <Text style={styles.filtersTitle}>Avoid</Text>
-        {renderAvoidOptions()}
-      </View>
-
-      {/* Action buttons */}
-      {hasRoute && (
-        <View style={styles.actionButtonsContainer}>
-          <View style={styles.actionButtons}>
-            <View style={styles.actionButtonWrapper}>
+          )}
+          {hasRoute && (
+            <View style={styles.filtersContainer}>
+              <Text style={styles.filtersTitle}>Travel Mode</Text>
+              {renderTravelModeOptions()}
+              <Text style={styles.filtersTitle}>Avoid</Text>
+              {renderAvoidOptions()}
+            </View>
+          )}
+          {hasRoute && (
+            <View style={styles.actionButtonsContainer}>
+              <View style={styles.actionButtons}>
+                <View style={styles.actionButtonWrapper}>
+                  <Button
+                    title="Change Route"
+                    onPress={() => setModalVisible(true)}
+                    variant="secondary"
+                  />
+                </View>
+                <View style={styles.actionButtonWrapper}>
+                  <Button
+                    title="Reset"
+                    onPress={resetRoute}
+                    variant="secondary"
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+          {!hasRoute && (
+            <View style={styles.whereToContainer}>
               <Button
-                title="Change Route"
+                title="Where to?"
                 onPress={() => setModalVisible(true)}
-                variant="secondary"
+                variant="primary"
+                size="large"
               />
             </View>
-            <View style={styles.actionButtonWrapper}>
-              <Button title="Reset" onPress={resetRoute} variant="secondary" />
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Where to? button */}
-      {!hasRoute && (
-        <View style={styles.whereToContainer}>
-          <Button
-            title="Where to?"
-            onPress={() => setModalVisible(true)}
-            variant="primary"
-            size="large"
-          />
-        </View>
-      )}
+          )}
+        </ScrollView>
+      </SafeAreaView>
 
       {/* Full-screen Modal for place search */}
       <Modal
@@ -553,9 +577,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   whereToContainer: {
-    padding: 16,
-    backgroundColor: Colors.background.primary,
+    paddingVertical: 24,
     alignItems: "center",
+    justifyContent: "center",
   },
   fullModalContainer: {
     flex: 1,
@@ -600,8 +624,7 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     padding: 16,
-    paddingBottom: 16 + 30, // Extra padding for Android navigation tray
-    backgroundColor: Colors.background.primary,
+    backgroundColor: "Colors.background.primary",
     alignItems: "center",
   },
   actionButtons: {
@@ -669,5 +692,20 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: Colors.primary[200],
+  },
+  bottomPanel: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.background.primary,
+    width: "100%",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 8,
   },
 });
