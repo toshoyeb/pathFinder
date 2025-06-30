@@ -9,7 +9,7 @@ A React Native mobile application built with Expo that provides intelligent rout
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3.0-blue?style=flat&logo=typescript)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth-orange?style=flat&logo=firebase)
 
-APK LINK: https://expo.dev/accounts/toshoyeb/projects/pathfinder/builds/5e212037-2656-428c-9b0b-7db61798e71a
+APK LINK: https://expo.dev/accounts/toshoyeb/projects/pathfinder/builds/3fb44f4e-54da-4892-ad11-8260dd274254
 
 ## 📸 App Screenshots
 
