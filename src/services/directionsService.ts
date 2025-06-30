@@ -164,7 +164,8 @@ function buildRouteRequest(
   destination: LatLng,
   travelMode: string,
   avoid: string[] = [],
-  computeAlternativeRoutes: boolean = false
+  computeAlternativeRoutes: boolean = false,
+  optimizationCriteria: "time" | "distance" | "eco" | "traffic" = "time"
 ) {
   const request: any = {
     origin: {
@@ -188,13 +189,34 @@ function buildRouteRequest(
     computeAlternativeRoutes,
   };
 
+  // Add routing preferences based on optimization criteria
+  if (travelMode === "driving") {
+    switch (optimizationCriteria) {
+      case "distance":
+        request.routingPreference = "TRAFFIC_UNAWARE"; // Shortest distance
+        break;
+      case "time":
+        request.routingPreference = "TRAFFIC_AWARE"; // Fastest time with traffic
+        break;
+      case "traffic":
+        request.routingPreference = "TRAFFIC_AWARE_OPTIMAL"; // Best traffic optimization
+        break;
+      case "eco":
+        request.routingPreference = "TRAFFIC_UNAWARE"; // Eco-friendly routing
+        if (!request.routeModifiers) request.routeModifiers = {};
+        // Add eco-friendly modifiers (avoid highways for fuel efficiency)
+        request.routeModifiers.avoidHighways = true;
+        break;
+    }
+  }
+
   // Add route modifiers for avoid preferences
   if (avoid.length > 0) {
-    request.routeModifiers = {
-      avoidTolls: avoid.includes("tolls"),
-      avoidHighways: avoid.includes("highways"),
-      avoidFerries: avoid.includes("ferries"),
-    };
+    if (!request.routeModifiers) request.routeModifiers = {};
+    request.routeModifiers.avoidTolls = avoid.includes("tolls");
+    request.routeModifiers.avoidHighways =
+      avoid.includes("highways") || request.routeModifiers.avoidHighways;
+    request.routeModifiers.avoidFerries = avoid.includes("ferries");
   }
 
   return request;
@@ -287,14 +309,15 @@ export async function getRouteBetweenPoints(
   destination: LatLng,
   mode: "driving" | "walking" | "bicycling" | "transit" = "driving",
   avoid: string[] = [],
-  optimize: boolean = false
+  optimizationCriteria: "time" | "distance" | "eco" | "traffic" = "time"
 ): Promise<{ polyline: LatLng[]; distance: string; duration: string }> {
   const requestBody = buildRouteRequest(
     origin,
     destination,
     mode,
     avoid,
-    false
+    false,
+    optimizationCriteria
   );
 
   console.log("🚀 Routes API v2 Single Route Request:", {
@@ -402,9 +425,17 @@ export async function getRoutesWithAlternatives(
   origin: LatLng,
   destination: LatLng,
   mode = "driving",
-  avoid: string[] = []
+  avoid: string[] = [],
+  optimizationCriteria: "time" | "distance" | "eco" | "traffic" = "time"
 ) {
-  const requestBody = buildRouteRequest(origin, destination, mode, avoid, true);
+  const requestBody = buildRouteRequest(
+    origin,
+    destination,
+    mode,
+    avoid,
+    true,
+    optimizationCriteria
+  );
 
   console.log("🚀 Routes API v2 Alternatives Request:", {
     url: ROUTES_API_BASE_URL,

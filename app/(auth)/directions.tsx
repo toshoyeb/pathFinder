@@ -136,6 +136,9 @@ export default function DirectionsPage() {
    */
   const [travelMode, setTravelMode] = useState<TravelMode>("driving"); // Current travel mode
   const [avoid, setAvoid] = useState<AvoidOption[]>([]); // Features to avoid in routing
+  const [optimizationCriteria, setOptimizationCriteria] = useState<
+    "time" | "distance" | "eco" | "traffic"
+  >("time"); // Route optimization preference
 
   /**
    * MODAL AND SEARCH STATE
@@ -198,6 +201,7 @@ export default function DirectionsPage() {
    * - origin/destination coordinates
    * - travel mode (driving, walking, etc.)
    * - avoid options (tolls, highways, ferries)
+   * - optimization criteria (time, distance, eco, traffic)
    */
   useEffect(() => {
     if (origin && destination) {
@@ -211,7 +215,7 @@ export default function DirectionsPage() {
       setRouteDuration(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination, travelMode, avoid]);
+  }, [origin, destination, travelMode, avoid, optimizationCriteria]);
 
   /**
    * LOCATION ACQUISITION SYSTEM
@@ -359,7 +363,8 @@ export default function DirectionsPage() {
         origin,
         destination,
         travelMode,
-        avoid
+        avoid,
+        optimizationCriteria
       );
 
       // SUCCESS: Process and display route alternatives
@@ -474,6 +479,39 @@ export default function DirectionsPage() {
           >{`Avoid ${opt.charAt(0).toUpperCase() + opt.slice(1)}`}</Text>
         </TouchableOpacity>
       ))}
+    </View>
+  );
+
+  const renderOptimizationOptions = () => (
+    <View style={styles.optionsContainer}>
+      <View style={styles.optionsRow}>
+        {([
+          { value: "time", emoji: "⏱️", label: "Time" },
+          { value: "distance", emoji: "📏", label: "Distance" },
+          { value: "eco", emoji: "🌱", label: "Eco" },
+          { value: "traffic", emoji: "🚗", label: "Traffic" },
+        ] as const).map((option) => (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              styles.optionButton,
+              optimizationCriteria === option.value &&
+                styles.optionButtonSelected,
+            ]}
+            onPress={() => setOptimizationCriteria(option.value)}
+          >
+            <Text
+              style={[
+                styles.optionText,
+                optimizationCriteria === option.value &&
+                  styles.optionTextSelected,
+              ]}
+            >
+              {option.emoji} {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
@@ -842,6 +880,8 @@ export default function DirectionsPage() {
             <View style={styles.filtersContainer}>
               <Text style={styles.filtersTitle}>Travel Mode</Text>
               {renderTravelModeOptions()}
+              <Text style={styles.filtersTitle}>Route Optimizer</Text>
+              {renderOptimizationOptions()}
               <Text style={styles.filtersTitle}>Avoid</Text>
               {renderAvoidOptions()}
             </View>
@@ -1028,6 +1068,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 12,
     gap: 8,
+  },
+  optionsContainer: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text.primary,
+    marginBottom: 8,
   },
   optionButton: {
     paddingVertical: 8,

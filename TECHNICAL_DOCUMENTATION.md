@@ -4,11 +4,14 @@
 PathFinder is a React Native Expo app built for intelligent navigation and route planning. It integrates Google Routes API v2 (with legacy Directions API fallback), Firebase Authentication, and provides multi-route alternatives with enhanced traffic data and route optimization.
 
 ### Key Features:
-- **Modern API Architecture**: Google Routes API v2 with automatic fallback to legacy Directions API
-- **Enhanced Route Planning**: Multiple route alternatives with real-time traffic integration
-- **Robust Authentication**: Firebase Auth with automatic state management
-- **Cross-Platform Compatibility**: Expo Router with React Native for iOS and Android
-- **Optimized Performance**: Field masks, custom polyline decoding, and efficient state management
+- **Modern API with Fallback**: Routes v2 API with legacy Directions API fallback for 100% reliability
+- **Multiple Alternatives**: Up to 3 route options with enhanced traffic data integration
+- **Optimized Performance**: Field masks reduce response size and improve speed
+- **Cross-API Compatibility**: Unified response format regardless of API used
+- **Future-Proof Architecture**: JSON POST requests with granular route preferences
+- **Optimization Criteria Selection**: Users can choose between time, distance, eco-friendly, and traffic-aware routing
+- **Real-time Traffic Integration**: Enhanced traffic data for optimal route planning
+- **Current Location Integration**: Automatic user location detection for seamless navigation
 
 ## 1. Repository Setup
 
@@ -576,6 +579,40 @@ async function getRoutesWithLegacyAPI(origin, destination, mode, avoid, alternat
   const response = await axios.get(url);
   
   return processLegacyResponse(response.data);
+}
+```
+
+#### Optimization Criteria Selection:
+
+PathFinder now includes user-selectable optimization criteria for route optimization specification:
+
+##### Available Optimization Options:
+```typescript
+type OptimizationCriteria = "time" | "distance" | "eco" | "traffic";
+```
+
+- **⏱️ Time**: Fastest route considering current traffic conditions
+- **📏 Distance**: Shortest distance route (traffic-unaware)
+- **🌱 Eco**: Eco-friendly routing with fuel efficiency considerations
+- **🚗 Traffic**: Advanced traffic-aware optimization for congestion avoidance
+
+##### Routes API v2 Integration:
+```typescript
+// Routing preferences based on optimization criteria
+switch (optimizationCriteria) {
+  case "time":
+    request.routingPreference = "TRAFFIC_AWARE"; // Fastest with traffic
+    break;
+  case "distance":
+    request.routingPreference = "TRAFFIC_UNAWARE"; // Shortest distance
+    break;
+  case "traffic":
+    request.routingPreference = "TRAFFIC_AWARE_OPTIMAL"; // Best traffic optimization
+    break;
+  case "eco":
+    request.routingPreference = "TRAFFIC_UNAWARE";
+    request.routeModifiers.avoidHighways = true; // Fuel efficiency
+    break;
 }
 ```
 
