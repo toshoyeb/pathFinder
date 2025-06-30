@@ -32,10 +32,6 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env
-
-# Sensitive configuration files
-google-services.json
 
 # typescript
 *.tsbuildinfo
