@@ -133,6 +133,8 @@ export const FullScreenSearch: React.FC<FullScreenSearchProps> = ({
 
     setIsLoadingAddress(true);
     try {
+      // ✅ This avoids bundling the reverseGeocode logic into the initial bundle, only loading it when the modal becomes visible.
+      //     This improves: Performance (especially for large apps).
       const { reverseGeocode } = await import("../../services/placesService");
       const place = await reverseGeocode(currentLocation);
       if (place) {
